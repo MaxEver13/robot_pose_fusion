@@ -6,11 +6,6 @@
 
 #include "robot_pose_ekf.h"
 
-#ifndef M_PI
-#define M_PI 3.1415926
-#define M_2PI (2.0 * M_PI)
-#endif
-
 RobotPoseEKF::RobotPoseEKF(double b, double kl, double kr, double k, 
                   double l, double psi, double phi, double ksx, double ksy) : 
                   b_(b), kl_(kl), kr_(kr), k_(k), l_(l), psi_(psi),
@@ -31,8 +26,8 @@ void RobotPoseEKF::AddEncoderData(unsigned int time, const int32_t& enc_l,
     return;
   }
   
-  // 计算时间差
-  double dt = time - last_time_;
+  // 计算时间差单位秒
+  double dt = (time - last_time_) / 1000.;
 
   // 计算左右轮位移距离
   int32_t delta_enc_l = enc_l - last_enc_l_;
@@ -143,9 +138,9 @@ void RobotPoseEKF::OpticalFlowUpdate(const double& sx, const double& sy) {
 
 void RobotPoseEKF::NormAngle(double& angle) {
   if( angle >= M_PI)
-    angle -= M_2_PI;
+    angle -= 2*M_PI;
   if( angle < -M_PI)
-    angle += M_2_PI;
+    angle += 2*M_PI;
 }
 
 void RobotPoseEKF::AddDeltaToState(const Eigen::Vector3d& delta_x) {
