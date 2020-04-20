@@ -10,20 +10,21 @@
 class MedianFilter
 {
 public:
-  template<typename Type>
-  MedianFilter(Type* input, Type* output, int size, int kernel_size, Type* buf);
+  
+  MedianFilter() {};
   ~MedianFilter() {};
 
-private:
-  template<typename Type>
-  void QuickSort(Type* arr, int n);
-  template<typename Type>
-  void QSort(Type* arr, int p, int r);
-  template<typename Type>
-  int Partition(Type* arr, int low, int high);
+  void Filter(int* input, int* output, int size, int kernel_size, int* buf);
 
-  template<typename Type>
-  static inline void copy(Type* input,  Type* buf, int left_bound, int kernel_size) {
+private:
+
+  void QuickSort(int* arr, int n);
+
+  void QSort(int* arr, int p, int r);
+
+  int Partition(int* arr, int low, int high);
+
+  static inline void copy(int* input,  int* buf, int left_bound, int kernel_size) {
     for(int i = 0; i < kernel_size; i ++) {
         buf[i] = input[left_bound + i];
     }

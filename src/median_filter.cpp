@@ -6,12 +6,12 @@
 
 #include "median_filter.h"
 
-template<typename Type>
-MedianFilter::MedianFilter(Type* input, Type* output, int size, int kernel_size, Type* buf) {
+
+void MedianFilter::Filter(int* input, int* output, int size, int kernel_size, int* buf) {
   bool newBuf = false;
   if(buf == 0) {
     newBuf = true;
-    buf = new Type[kernel_size];
+    buf = new int[kernel_size];
   }
   int half = kernel_size / 2;
   int end = size - half;
@@ -45,13 +45,13 @@ MedianFilter::MedianFilter(Type* input, Type* output, int size, int kernel_size,
   }
 }
 
-template<typename Type>
-void MedianFilter::QuickSort(Type* arr, int n) {
+
+void MedianFilter::QuickSort(int* arr, int n) {
   QSort(arr, 0, n - 1);
 }
 
-template<typename Type>
-void MedianFilter::QSort(Type* arr, int p, int r) {
+
+void MedianFilter::QSort(int* arr, int p, int r) {
   if (p <= r) {
     int	q = Partition(arr, p, r);
     QSort(arr, p, q - 1);
@@ -59,8 +59,8 @@ void MedianFilter::QSort(Type* arr, int p, int r) {
   }	
 }
 
-template<typename Type>
-int MedianFilter::Partition(Type* arr, int low, int high) {
+
+int MedianFilter::Partition(int* arr, int low, int high) {
   int key = arr[high]; // 这里可以随机选择一个数组中的元素，选择最后一个
 	int i = low-1; // 小于等于区间的下标
 	for (int j = low; j < high; j++) {
