@@ -37,8 +37,8 @@ void RobotPoseEKF::AddEncoderData(unsigned int time, const int32_t& enc_l,
 
   // 计算位姿变化量
   // double delta_theta = (delta_s_r - delta_s_l) / b_; 
-  double delta_theta = (theta - last_theta_) / 1000.0; //毫弧度
-  double delta_s = 0.5 * (delta_s_r + delta_s_l);
+  double delta_theta = (theta - last_theta_) / 1000.0; // 弧度
+  double delta_s = 0.5 * (delta_s_r + delta_s_l) / 1000.0; // 米
 
   double theta_tmp = state_(2) + 0.5 * delta_theta;
   double cos_theta = cos(theta_tmp);
@@ -53,10 +53,12 @@ void RobotPoseEKF::AddEncoderData(unsigned int time, const int32_t& enc_l,
   u_(2) = delta_theta;
 
   // 更新状态
+  mutex_.lock();
   state_(0) += delta_s * cos_theta;
   state_(1) += delta_s * sin_theta;
   state_(2) += delta_theta;
-  NormAngle(state_(2));  
+  NormAngle(state_(2));
+  mutex_.unlock();  
 
   // 运动模型关于上一时刻位姿的雅各比
   Eigen::Matrix3d F;
@@ -89,8 +91,13 @@ void RobotPoseEKF::AddEncoderData(unsigned int time, const int32_t& enc_l,
 void RobotPoseEKF::OpticalFlowUpdate(const double& sx, const double& sy) {
   if (!is_inited_)
     return;
+
+  if (sx == 0.0 && sy == 0.0)
+    return;
   
+  mutex_.lock();
   double psi_tmp = state_(2) + psi_;
+  mutex_.unlock();
   double sin_psi = sin(psi_tmp);
   double cos_psi = cos(psi_tmp);
 
@@ -99,7 +106,9 @@ void RobotPoseEKF::OpticalFlowUpdate(const double& sx, const double& sy) {
         0.0, 1.0, l_ * cos_psi;
 
   // 光流传感器到世界坐标系的旋转
+  mutex_.lock();
   double phi_tmp = state_(2) + phi_;
+  mutex_.unlock();
   double sin_phi = sin(phi_tmp);
   double cos_phi = cos(phi_tmp);
   Eigen::Matrix2d R;
@@ -126,7 +135,12 @@ void RobotPoseEKF::OpticalFlowUpdate(const double& sx, const double& sy) {
   const Eigen::VectorXd delta_x = K * residual;
 
   // 更新状态
-  AddDeltaToState(delta_x);
+  mutex_.lock();
+  state_(0) += delta_x(0);
+  state_(1) += delta_x(1);
+  state_(2) += delta_x(2); 
+  NormAngle(state_(2));
+  mutex_.unlock();
 
   // 更新协方差
   // Eigen::MatrixXd I = Eigen::Matrix<double, ３, ３>::Identity()
@@ -135,16 +149,17 @@ void RobotPoseEKF::OpticalFlowUpdate(const double& sx, const double& sy) {
   sigma_ = I_KH * P * I_KH.transpose() + K * Q * K.transpose();
 }
 
+void RobotPoseEKF::GetFusionPose(float& poseX, float& poseY, float& posePhi) {
+  mutex_.lock();
+  poseX = (float)state_(0);
+  poseY = (float)state_(1);
+  posePhi = (float)state_(2);
+  mutex_.unlock();
+}
 
 void RobotPoseEKF::NormAngle(double& angle) {
   if( angle >= M_PI)
     angle -= 2*M_PI;
   if( angle < -M_PI)
     angle += 2*M_PI;
-}
-
-void RobotPoseEKF::AddDeltaToState(const Eigen::Vector3d& delta_x) {
-  state_(0) += delta_x(0);
-  state_(1) += delta_x(1);
-  state_(2) += delta_x(2);  
 }

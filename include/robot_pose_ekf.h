@@ -9,6 +9,7 @@
 
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Dense>
+#include <mutex>
 
 class RobotPoseEKF
 {
@@ -21,10 +22,12 @@ public:
   void AddEncoderData(unsigned int time, const int32_t& enc_l, const int32_t& enc_r, const int32_t& phi);
   // 获取光流传感器数据更新状态
   void OpticalFlowUpdate(const double& sx, const double& sy);
+  // 对外提供位姿
+  void GetFusionPose(float& poseX, float& poseY, float& posePhi);
 
 private:
   void NormAngle(double& angle);
-  void AddDeltaToState(const Eigen::Vector3d& delta_x);
+
 
 private:
   double b_;      // 左右轮间距
@@ -49,7 +52,7 @@ private:
 
   Eigen::Vector3d u_; //当前位姿的变化量
  
-
+  std::mutex mutex_;
 };
 
 #endif

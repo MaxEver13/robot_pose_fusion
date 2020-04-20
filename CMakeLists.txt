@@ -27,8 +27,9 @@ include_directories(
 )
 
 # ekf
-add_library(robot_pose_ekf
+add_library(robot_pose_ekf SHARED
   src/robot_pose_ekf.cpp
+  src/median_filter.cpp
 )
 
 # run app
