@@ -5,16 +5,21 @@
  */
 
 #include "median_filter.h"
+#include "stdio.h"
 
+bool MedianFilter::Filter(int* input, int* output, int size, int kernel_size, int* buf) {
+  if (size < kernel_size) {
+    printf("input data length is shorter than kernel size \n");
+    return false;
+  }
 
-void MedianFilter::Filter(int* input, int* output, int size, int kernel_size, int* buf) {
   bool newBuf = false;
   if(buf == 0) {
     newBuf = true;
     buf = new int[kernel_size];
   }
-  int half = kernel_size / 2;
-  int end = size - half;
+  int half = kernel_size / 2;  
+  int end = size - half;  
 
   // 数组左端
   for(int pos = 0; pos < half; pos ++) {
@@ -43,6 +48,8 @@ void MedianFilter::Filter(int* input, int* output, int size, int kernel_size, in
   if(newBuf) {
     delete[] buf;
   }
+
+  return true;
 }
 
 

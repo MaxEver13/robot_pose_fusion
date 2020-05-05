@@ -14,7 +14,7 @@ public:
   MedianFilter() {};
   ~MedianFilter() {};
 
-  void Filter(int* input, int* output, int size, int kernel_size, int* buf);
+  bool Filter(int* input, int* output, int size, int kernel_size, int* buf);
 
 private:
 

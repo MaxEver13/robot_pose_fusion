@@ -43,15 +43,15 @@ private:
 
   bool is_inited_;  // 系统初始化标志位
 
-  Eigen::Vector3d state_;  //　里程计状态[x,y,theta]的均值
-  Eigen::Matrix3d sigma_;  // 里程计状态的协方差
+  Eigen::Matrix<double, 6, 1> state_;  //　当前时刻EKF状态
+  Eigen::Matrix<double, 6, 6> sigma_;  // 当前时刻状态的协方差
 
   unsigned int last_time_; // 数据时间戳单位毫秒
   int32_t last_enc_l_, last_enc_r_; // 上一次编码器的读数
   int32_t last_theta_; // 上一次陀螺仪z轴积分角度
 
-  Eigen::Vector3d u_; //当前位姿的变化量
- 
+  Eigen::Vector2d last_u_; // 上一时刻机器人控制输入
+
   std::mutex mutex_;
 };
 
