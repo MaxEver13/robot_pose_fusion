@@ -61,8 +61,8 @@ void RobotPoseEKF::AddEncoderData(unsigned int time, const int32_t& enc_l,
   B.setZero(); 
   double theta_j = state_(2); // 当前时刻机器人朝向
   double theta_i = state_(5); // 上一时刻机器人朝向
-  double d_s_i = last_u_(0); // 上一时刻的控制输入的平移
-  double d_theta_i = last_u_(1); // 上一时刻的控制输入的旋转
+  double d_s_i = last_u_(0); // 上一时刻真实的控制输入的平移
+  double d_theta_i = last_u_(1); // 上一时刻真实的控制输入的旋转
   B(0, 0) = cos(theta_j + 0.5 * d_theta_j);
   B(0, 2) = cos(theta_i + 0.5 * d_theta_i);
   B(1, 0) = sin(theta_j + 0.5 * d_theta_j);
@@ -85,29 +85,25 @@ void RobotPoseEKF::AddEncoderData(unsigned int time, const int32_t& enc_l,
   mutex_.unlock();
 
   // 系统协方差
-  Eigen::Matrix<double, 6, 6> W;
-  W.setZero();
-  W(0, 0) = 0.002;
-  W(1, 1) = 0.002;
-  W(2, 2) = 0.002;
-  W(3, 3) = 0.002;
-  W(4, 4) = 0.002;
-  W(5, 5) = 0.002;
+  Eigen::Matrix<double, 6, 6> Q;
+  Q.setZero();
+  Q(0, 0) = k_; // k_ = 0.02
+  Q(1, 1) = k_;
+  Q(2, 2) = k_;
+  Q(3, 3) = k_;
+  Q(4, 4) = k_;
+  Q(5, 5) = k_;
 
   // 输入协方差
   Eigen::Matrix4d sigma_u;
   sigma_u.setZero();
-  sigma_u(0, 0) = k_ * k_ * d_s_j * d_s_j;
-  sigma_u(1, 1) = (0.2*0.0174533)*(0.2*0.0174533)*dt*dt;
-  sigma_u(2, 2) = k_ * k_ * d_s_i * d_s_i;
-  sigma_u(3, 3) = (0.2*0.0174533)*(0.2*0.0174533)*dt*dt;
+  sigma_u(0, 0) = k_ ;
+  sigma_u(1, 1) = k_;
+  sigma_u(2, 2) = k_ ;
+  sigma_u(3, 3) = k_;
 
   // 更新协方差
-  sigma_ = A * sigma_ * A.transpose() + B * sigma_u * B.transpose() + W;
-
-  // 保存上一时刻的控制输入
-  last_u_(0) = d_s_j;
-  last_u_(1) = d_theta_j;
+  sigma_ = A * sigma_ * A.transpose() + B * sigma_u * B.transpose() + Q;
 
   // 保存上一次数据
   last_enc_l_ = enc_l;
@@ -140,9 +136,9 @@ void RobotPoseEKF::OpticalFlowUpdate(const double& sx, const double& sy) {
        cos_phi_tmp, sin_phi_tmp, l_ * cos_phi_psi, -cos_phi_tmp, -sin_phi_tmp, -l_ * cos_phi_psi;
 
   // 光流传感器的测量协方差
-  Eigen::Matrix2d R;
-  R << ksx_ * ksx_ * sx * sx, 0.0,
-        0.0, ksy_ * ksy_ * sy * sy;
+  Eigen::Matrix2d R; // ksx = 200.0 , ksy = 200.0
+  R << ksx_, 0.0,
+        0.0, ksy_;
 
   // kalman gain
   const Eigen::MatrixXd& P = sigma_;
@@ -158,6 +154,23 @@ void RobotPoseEKF::OpticalFlowUpdate(const double& sx, const double& sy) {
   // 更新协方差
   Eigen::MatrixXd I = Eigen::Matrix3d::Identity();
   sigma_ = (I - K * H) * sigma_;
+
+  // 保存上一时刻真实的控制输入
+  mutex_.lock();
+  double d_theta_i = state_(2) - state_(5);
+  double theta_i = state_(5);
+  double dx = state_(0) - state_(3);
+  double dy = state_(1) - state_(4);
+  mutex_.unlock();
+  double cos_theta = cos(theta_i + 0.5 * d_theta_i);
+  double sin_theta = sin(theta_i + 0.5 * d_theta_i);
+  if (abs(cos_theta) > 0.0001) {
+    last_u_(0) = dx / cos_theta;
+    last_u_(1) = d_theta_i;
+  } else {
+    last_u_(0) = dy / sin_theta;
+    last_u_(1) = d_theta_i;
+  }
 
 }
 
