@@ -46,6 +46,8 @@ void RobotPoseEKF::AddEncoderData(unsigned int time, const int32_t& enc_l,
   double d_theta_j = (theta - last_theta_) / 1000.0; // 弧度
   double d_s_j = 0.5 * (delta_s_r + delta_s_l) / 1000.0; // 米
 
+  // TODO:根据打滑情况，将码盘角度增量与陀螺仪增量做互补滤波
+
   // 系统矩阵
   Eigen::Matrix<double, 6, 6> A;
   A.setZero();
@@ -87,20 +89,22 @@ void RobotPoseEKF::AddEncoderData(unsigned int time, const int32_t& enc_l,
   // 系统协方差
   Eigen::Matrix<double, 6, 6> Q;
   Q.setZero();
-  Q(0, 0) = k_; // k_ = 0.02
-  Q(1, 1) = k_;
-  Q(2, 2) = k_;
-  Q(3, 3) = k_;
-  Q(4, 4) = k_;
-  Q(5, 5) = k_;
+  Q(0, 0) = 0.002; 
+  Q(1, 1) = 0.002;
+  Q(2, 2) = 0.002;
+  Q(3, 3) = 0.002;
+  Q(4, 4) = 0.002;
+  Q(5, 5) = 0.002;
 
-  // 输入协方差
+  // 输入协方差 
+  // 正常跑: k_ = 0.02 
+  // 防止打滑: k_ = 200.0 
   Eigen::Matrix4d sigma_u;
   sigma_u.setZero();
-  sigma_u(0, 0) = k_ ;
-  sigma_u(1, 1) = k_;
-  sigma_u(2, 2) = k_ ;
-  sigma_u(3, 3) = k_;
+  sigma_u(0, 0) = k_ * k_ * d_s_j * d_s_j;
+  sigma_u(1, 1) = (0.2 * 0.0174533)*(0.2 * 0.0174533)*dt*dt;
+  sigma_u(2, 2) = k_ * k_ * d_s_i * d_s_i;
+  sigma_u(3, 3) = (0.2 * 0.0174533)*(0.2 * 0.0174533)*dt*dt;
 
   // 更新协方差
   sigma_ = A * sigma_ * A.transpose() + B * sigma_u * B.transpose() + Q;
@@ -136,7 +140,9 @@ void RobotPoseEKF::OpticalFlowUpdate(const double& sx, const double& sy) {
        cos_phi_tmp, sin_phi_tmp, l_ * cos_phi_psi, -cos_phi_tmp, -sin_phi_tmp, -l_ * cos_phi_psi;
 
   // 光流传感器的测量协方差
-  Eigen::Matrix2d R; // ksx = 200.0 , ksy = 200.0
+  // 正常跑：ksx = 200.0 , ksy = 200.0　
+  // 防止打滑：ksx = 0.001 , ksy = 0.001　
+  Eigen::Matrix2d R; 
   R << ksx_, 0.0,
         0.0, ksy_;
 
